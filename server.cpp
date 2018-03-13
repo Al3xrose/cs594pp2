@@ -1,5 +1,5 @@
 /*
-** listener.c -- a datagram sockets "server" demo
+** 
 */
 
 #include <stdio.h>
@@ -17,6 +17,8 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <signal.h>
+#include <time.h>
 using namespace std;
 
 #define PAYLOAD_SIZE 256
@@ -42,6 +44,7 @@ void send_packet(rdt_packet pack, int sockfd, sockaddr_storage their_addr, sockl
 
 int main(int argc, char **argv)
 {
+	timer_t timerid;
 	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
@@ -54,6 +57,8 @@ int main(int argc, char **argv)
 	char *fileReadBuffer;
 	int fileIndex = 0;
 	ifstream f;
+	int timeStamp = 0;
+
 
 	if(argc != 2)
 	{

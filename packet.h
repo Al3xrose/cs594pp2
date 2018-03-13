@@ -92,3 +92,34 @@ class rdt_packet {
 	}
 };
 
+class packet_info 
+{
+
+private:
+	rdt_packet *packet;
+	int timeStamp;
+	bool ackd;
+
+public:
+	packet_info(rdt_packet *pack, int time)
+	{
+		packet = pack;
+		timeStamp = time;
+		ackd = false;
+	}
+
+	bool get_ackd()
+	{
+		return ackd;
+	}
+
+	void set_ackd()
+	{
+		ackd = true;
+	}
+
+	rdt_packet *get_packet()
+	{
+		return packet;
+	}
+};

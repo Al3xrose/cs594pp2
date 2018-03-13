@@ -18,12 +18,23 @@
 #include <fstream>
 #include <algorithm>
 #include <math.h>
+#include <pthread.h>
 using namespace std;
 
 #define MAX_PACKET_SIZE 2048
 
-int main(int argc, char *argv[])
+void send_packet(rdt_packet pack, int sockfd, struct sockaddr *their_addr, socklen_t addr_len)
 {
+	if(int numbytes = sendto(sockfd, pack.to_string().c_str(), pack.to_string().length(), 0, their_addr, addr_len) == -1)
+	{
+		perror("listener: sendto");
+		exit(1);
+	}	
+}
+
+int main(int argc, char *argv[])
+{ 
+	pthread_t senderthread;
 	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
@@ -35,8 +46,8 @@ int main(int argc, char *argv[])
 	string fileBuffer = "";
 	ofstream f;
 
-	if (argc != 4) {
-		cout << "usage: talker hostname port filename timeout(ms) window" << endl;
+	if (argc != 6) {
+		cout << "usage: talker hostname port filename timeout(ms) window_size" << endl;
 		exit(1);
 	}
 	
@@ -58,6 +69,7 @@ int main(int argc, char *argv[])
 		filename.insert(0, 1, filePath[j]);
 		j--;
 	}
+	
 	cout << filename << endl;
 
 	if ((rv = getaddrinfo(argv[1], SERVERPORT, &hints, &servinfo)) != 0) {
@@ -125,11 +137,13 @@ int main(int argc, char *argv[])
 		{
 			responsePacket.set_packet_type("FILE_REQUEST");
 			responsePacket.set_payload(filePath);
+			send_packet(responsePacket, sockfd, (p->ai_addr), p->ai_addrlen);
 		}
 
 		else if(packetType == "FILE_OK")
 		{
 			responsePacket.set_packet_type("ACK");
+			send_packet(responsePacket, sockfd, p->ai_addr, p->ai_addrlen);
 		}
 
 		//If we receive a data packet, add the data to our buffer then send an ACK
@@ -138,6 +152,7 @@ int main(int argc, char *argv[])
 			fileBuffer += receivedPacket.get_payload();
 			responsePacket.set_packet_type("ACK");
 			responsePacket.set_payload("");
+			send_packet(responsePacket, sockfd, p->ai_addr, p->ai_addrlen);
 		}
 		else if(packetType == "DATA_END")
 		{
@@ -149,6 +164,7 @@ int main(int argc, char *argv[])
 			
 			f << fileBuffer.c_str();
 			f.close();
+			send_packet(responsePacket, sockfd, p->ai_addr, p->ai_addrlen);
 		}
 		else if(packetType == "ERROR")
 		{
@@ -158,11 +174,11 @@ int main(int argc, char *argv[])
 		}
 
 		cout << "Responding with " << responsePacket.to_string() << endl;	
-		if ((numbytes = sendto(sockfd, responsePacket.to_string().c_str() , responsePacket.to_string().length(), 0, p->ai_addr, p->ai_addrlen)) == -1) 
+		/*if ((numbytes = sendto(sockfd, responsePacket.to_string().c_str() , responsePacket.to_string().length(), 0, p->ai_addr, p->ai_addrlen)) == -1) 
 		{
 			perror("talker: sendto");
 			exit(1);
-		}
+		}*/
 		delete []buf;
 	}	
 	close(sockfd);
